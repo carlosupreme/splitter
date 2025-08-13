@@ -3,11 +3,11 @@
 namespace App\Models;
 
 use App\Enums\InvitationStatus;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Builder;
 
 class Event extends Model
 {
@@ -103,7 +103,7 @@ class Event extends Model
 
     public function hasSpace(): bool
     {
-        if (!$this->max_attendees) {
+        if (! $this->max_attendees) {
             return true;
         }
 
@@ -120,5 +120,77 @@ class Event extends Model
         $invitation = $this->invitations()->where('user_id', $userId)->first();
 
         return $invitation ? InvitationStatus::from($invitation->status) : null;
+    }
+
+    // Budget relationships
+    public function budgetItems(): HasMany
+    {
+        return $this->hasMany(BudgetItem::class);
+    }
+
+    public function expenses(): HasMany
+    {
+        return $this->budgetItems()->where('type', 'expense');
+    }
+
+    public function incomes(): HasMany
+    {
+        return $this->budgetItems()->where('type', 'income');
+    }
+
+    // Check if user can access the budget (organizer or accepted attendee)
+    public function canUserAccessBudget(int $userId): bool
+    {
+        // Organizer can always access
+        if ($this->organizer_id === $userId) {
+            return true;
+        }
+
+        // Check if user is an accepted attendee
+        return $this->acceptedInvitees()->where('user_id', $userId)->exists();
+    }
+
+    // Get total expenses
+    public function getTotalExpenses(): float
+    {
+        return $this->expenses()->sum('amount');
+    }
+
+    // Get total incomes (from payments made)
+    public function getTotalIncomes(): float
+    {
+        return $this->expenses()
+            ->with('payments')
+            ->get()
+            ->flatMap->payments
+            ->sum('amount');
+    }
+
+    // Get budget summary for a specific user
+    public function getBudgetSummaryForUser(int $userId): array
+    {
+        $totalOwed = 0;
+        $totalPaid = 0;
+        $creditsToReceive = 0;
+
+        foreach ($this->expenses as $expense) {
+            $split = $expense->splits()->where('user_id', $userId)->first();
+            if ($split) {
+                $totalOwed += $split->share_amount;
+                $totalPaid += $split->paid_amount;
+
+                if ($split->isOverpaid()) {
+                    $creditsToReceive += $split->getOverpaidAmount();
+                }
+            }
+        }
+
+        return [
+            'total_owed' => $totalOwed,
+            'total_paid' => $totalPaid,
+            'remaining_to_pay' => max(0, $totalOwed - $totalPaid),
+            'credits_to_receive' => $creditsToReceive,
+            'status' => $totalPaid >= $totalOwed ? 'completed' : ($totalPaid > 0 ? 'partial' : 'pending'),
+        ];
     }
 }

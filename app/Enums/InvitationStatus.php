@@ -10,7 +10,7 @@ enum InvitationStatus: string
 
     public function label(): string
     {
-        return match($this) {
+        return match ($this) {
             self::PENDING => 'Pending',
             self::ACCEPTED => 'Accepted',
             self::DECLINED => 'Declined',
@@ -19,7 +19,7 @@ enum InvitationStatus: string
 
     public function color(): string
     {
-        return match($this) {
+        return match ($this) {
             self::PENDING => 'warning',
             self::ACCEPTED => 'success',
             self::DECLINED => 'danger',

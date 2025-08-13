@@ -2,8 +2,8 @@
 
 namespace App\Filament\Resources\EventInvitations\Pages\EventInvitations;
 
-use App\Filament\Resources\EventInvitations\EventInvitationResource;
 use App\Enums\InvitationStatus;
+use App\Filament\Resources\EventInvitations\EventInvitationResource;
 use App\Models\EventInvitation;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\Page;
@@ -11,14 +11,15 @@ use Filament\Resources\Pages\Page;
 class MyInvitations extends Page
 {
     protected static string $resource = EventInvitationResource::class;
-    
+
     protected static ?string $title = 'My Event Invitations';
-    
+
     protected static ?string $navigationLabel = 'My Invitations';
 
     protected string $view = 'filament.resources.event-invitations.pages.event-invitations.my-invitations';
-    
+
     public $pendingInvitations = [];
+
     public $respondedInvitations = [];
 
     public function mount(): void
@@ -29,14 +30,14 @@ class MyInvitations extends Page
     protected function loadInvitations(): void
     {
         $user = auth()->user();
-        
+
         $this->pendingInvitations = $user->eventInvitations()
             ->with(['event.organizer'])
             ->pending()
             ->orderBy('created_at', 'desc')
             ->get()
             ->toArray();
-            
+
         $this->respondedInvitations = $user->eventInvitations()
             ->with(['event.organizer'])
             ->whereIn('status', [InvitationStatus::ACCEPTED->value, InvitationStatus::DECLINED->value])
@@ -49,12 +50,13 @@ class MyInvitations extends Page
     {
         try {
             $invitation = EventInvitation::find($invitationId);
-            
-            if (!$invitation || $invitation->user_id !== auth()->id()) {
+
+            if (! $invitation || $invitation->user_id !== auth()->id()) {
                 Notification::make()
                     ->title('Invitation not found')
                     ->danger()
                     ->send();
+
                 return;
             }
 
@@ -64,7 +66,7 @@ class MyInvitations extends Page
                     ->body("You've successfully accepted the invitation to {$invitation->event->title}")
                     ->success()
                     ->send();
-                    
+
                 $this->loadInvitations();
             }
         } catch (\Exception $e) {
@@ -80,12 +82,13 @@ class MyInvitations extends Page
     {
         try {
             $invitation = EventInvitation::find($invitationId);
-            
-            if (!$invitation || $invitation->user_id !== auth()->id()) {
+
+            if (! $invitation || $invitation->user_id !== auth()->id()) {
                 Notification::make()
                     ->title('Invitation not found')
                     ->danger()
                     ->send();
+
                 return;
             }
 
@@ -95,7 +98,7 @@ class MyInvitations extends Page
                     ->body("You've declined the invitation to {$invitation->event->title}")
                     ->success()
                     ->send();
-                    
+
                 $this->loadInvitations();
             }
         } catch (\Exception $e) {

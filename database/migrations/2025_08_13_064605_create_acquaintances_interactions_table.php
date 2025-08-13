@@ -1,6 +1,5 @@
 <?php
 
-
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Multicaret\Acquaintances\Interaction;
@@ -27,12 +26,11 @@ class CreateAcquaintancesInteractionsTable extends Migration
             $table->string('relation_type')->nullable();
             $table->timestamps();
 
-
             $table->foreign($userIdFkColumnName)
-                  ->references($userModel->getKeyName())
-                  ->on($userModel->getTable())
-                  ->onUpdate('cascade')
-                  ->onDelete('cascade');
+                ->references($userModel->getKeyName())
+                ->on($userModel->getTable())
+                ->onUpdate('cascade')
+                ->onDelete('cascade');
         });
     }
 

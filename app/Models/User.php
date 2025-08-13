@@ -5,8 +5,8 @@ namespace App\Models;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Enums\InvitationStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Multicaret\Acquaintances\Traits\Friendable;
@@ -14,8 +14,8 @@ use Multicaret\Acquaintances\Traits\Friendable;
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable,
-        Friendable;
+    use Friendable, HasFactory,
+        Notifiable;
 
     /**
      * The attributes that are mass assignable.
@@ -27,7 +27,7 @@ class User extends Authenticatable
         'email',
         'password',
         'photo',
-        'phone'
+        'phone',
     ];
 
     /**
@@ -45,10 +45,11 @@ class User extends Authenticatable
      *
      * @return array<string, string>
      */
-    protected function casts(): array {
+    protected function casts(): array
+    {
         return [
             'email_verified_at' => 'datetime',
-            'password'          => 'hashed',
+            'password' => 'hashed',
         ];
     }
 
@@ -74,25 +75,25 @@ class User extends Authenticatable
     public function createEvent(array $data, array $inviteeFriends = []): Event
     {
         $event = $this->organizedEvents()->create($data);
-        
-        if (!empty($inviteeFriends)) {
+
+        if (! empty($inviteeFriends)) {
             $event->inviteFriends($inviteeFriends);
         }
-        
+
         return $event;
     }
 
-    public function respondToInvitation(Event $event, InvitationStatus $status, string $message = null): bool
+    public function respondToInvitation(Event $event, InvitationStatus $status, ?string $message = null): bool
     {
         $invitation = $this->eventInvitations()
             ->where('event_id', $event->id)
             ->first();
-            
-        if (!$invitation || !$invitation->isPending()) {
+
+        if (! $invitation || ! $invitation->isPending()) {
             return false;
         }
 
-        return match($status) {
+        return match ($status) {
             InvitationStatus::ACCEPTED => $invitation->accept($message),
             InvitationStatus::DECLINED => $invitation->decline($message),
             default => false,
@@ -111,7 +112,7 @@ class User extends Authenticatable
     public function getAvailableFriendsForEvent(Event $event)
     {
         $invitedFriendIds = $event->invitees()->pluck('users.id')->toArray();
-        
+
         return $this->getFriends()->reject(function ($friend) use ($invitedFriendIds) {
             return in_array($friend->id, $invitedFriendIds);
         });

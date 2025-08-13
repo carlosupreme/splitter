@@ -4,7 +4,6 @@ namespace App\Filament\Resources\Users\Pages;
 
 use App\Filament\Resources\Users\UserResource;
 use App\Models\User;
-use Filament\Actions\Action;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\Page;
 
@@ -13,11 +12,12 @@ class FriendRequests extends Page
     protected static string $resource = UserResource::class;
 
     protected string $view = 'filament.resources.users.pages.friend-requests';
-    
+
     public $pendingRequests = [];
+
     public $friends = [];
 
-    public function mount(): void 
+    public function mount(): void
     {
         $this->loadData();
     }
@@ -25,20 +25,21 @@ class FriendRequests extends Page
     protected function loadData(): void
     {
         $user = auth()->user();
-        
+
         // Get pending friend requests received by current user
         $this->pendingRequests = $user->getPendingFriendships()->map(function ($friendship) {
             $sender = User::find($friendship->sender_id);
+
             return [
                 'id' => $friendship->id,
                 'sender_id' => $friendship->sender_id,
                 'sender_name' => $sender->name ?? 'Unknown User',
                 'sender_email' => $sender->email ?? '',
                 'created_at' => $friendship->created_at,
-                'sender' => $sender
+                'sender' => $sender,
             ];
         })->toArray();
-        
+
         // Get current friends
         $this->friends = $user->getFriends()->map(function ($friend) {
             return [
@@ -54,24 +55,25 @@ class FriendRequests extends Page
     {
         try {
             $sender = User::find($senderId);
-            
-            if (!$sender) {
+
+            if (! $sender) {
                 Notification::make()
                     ->title('User not found')
                     ->danger()
                     ->send();
+
                 return;
             }
 
             $result = auth()->user()->acceptFriendRequest($sender);
-            
+
             if ($result) {
                 Notification::make()
                     ->title('Friend request accepted')
                     ->body("You are now friends with {$sender->name}")
                     ->success()
                     ->send();
-                    
+
                 $this->loadData(); // Refresh data
             } else {
                 Notification::make()
@@ -92,24 +94,25 @@ class FriendRequests extends Page
     {
         try {
             $sender = User::find($senderId);
-            
-            if (!$sender) {
+
+            if (! $sender) {
                 Notification::make()
                     ->title('User not found')
                     ->danger()
                     ->send();
+
                 return;
             }
 
             $result = auth()->user()->denyFriendRequest($sender);
-            
+
             if ($result) {
                 Notification::make()
                     ->title('Friend request denied')
                     ->body("Friend request from {$sender->name} has been denied")
                     ->success()
                     ->send();
-                    
+
                 $this->loadData(); // Refresh data
             } else {
                 Notification::make()
@@ -130,24 +133,25 @@ class FriendRequests extends Page
     {
         try {
             $friend = User::find($friendId);
-            
-            if (!$friend) {
+
+            if (! $friend) {
                 Notification::make()
                     ->title('User not found')
                     ->danger()
                     ->send();
+
                 return;
             }
 
             $result = auth()->user()->unfriend($friend);
-            
+
             if ($result) {
                 Notification::make()
                     ->title('Friend removed')
                     ->body("You are no longer friends with {$friend->name}")
                     ->success()
                     ->send();
-                    
+
                 $this->loadData(); // Refresh data
             } else {
                 Notification::make()

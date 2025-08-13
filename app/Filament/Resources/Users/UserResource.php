@@ -8,9 +8,7 @@ use App\Models\User;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\TextInput;
@@ -29,66 +27,69 @@ class UserResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'name';
 
-    public static function form(Schema $schema): Schema {
+    public static function form(Schema $schema): Schema
+    {
         return $schema
             ->components([
                 TextInput::make('name')
-                         ->required(),
+                    ->required(),
                 TextInput::make('email')
-                         ->label('Email address')
-                         ->email()
-                         ->required(),
+                    ->label('Email address')
+                    ->email()
+                    ->required(),
                 DateTimePicker::make('email_verified_at'),
                 TextInput::make('password')
-                         ->password()
-                         ->required(),
+                    ->password()
+                    ->required(),
                 TextInput::make('photo'),
                 TextInput::make('phone')
-                         ->tel(),
+                    ->tel(),
             ]);
     }
 
-    public static function infolist(Schema $schema): Schema {
+    public static function infolist(Schema $schema): Schema
+    {
         return $schema
             ->components([
                 TextEntry::make('name'),
                 TextEntry::make('email')
-                         ->label('Email address'),
+                    ->label('Email address'),
                 TextEntry::make('email_verified_at')
-                         ->dateTime(),
+                    ->dateTime(),
                 TextEntry::make('created_at')
-                         ->dateTime(),
+                    ->dateTime(),
                 TextEntry::make('updated_at')
-                         ->dateTime(),
+                    ->dateTime(),
                 TextEntry::make('photo'),
                 TextEntry::make('phone'),
             ]);
     }
 
-    public static function table(Table $table): Table {
+    public static function table(Table $table): Table
+    {
         return $table
             ->recordTitleAttribute('name')
             ->columns([
                 TextColumn::make('name')
-                          ->searchable(),
+                    ->searchable(),
                 TextColumn::make('email')
-                          ->label('Email address')
-                          ->searchable(),
+                    ->label('Email address')
+                    ->searchable(),
                 TextColumn::make('email_verified_at')
-                          ->dateTime()
-                          ->sortable(),
+                    ->dateTime()
+                    ->sortable(),
                 TextColumn::make('created_at')
-                          ->dateTime()
-                          ->sortable()
-                          ->toggleable(isToggledHiddenByDefault: true),
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('updated_at')
-                          ->dateTime()
-                          ->sortable()
-                          ->toggleable(isToggledHiddenByDefault: true),
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('photo')
-                          ->searchable(),
+                    ->searchable(),
                 TextColumn::make('phone')
-                          ->searchable(),
+                    ->searchable(),
             ])
             ->filters([
                 //
@@ -96,26 +97,27 @@ class UserResource extends Resource
             ->recordActions([
                 ViewAction::make(),
                 Action::make('sendFriendRequest')
-                      ->label('Send Friend Request')
-                      ->icon(Heroicon::OutlinedUserPlus)
-                      ->visible(static fn(User $record) => !(auth()
-                              ->user()
-                              ->isFriendWith($record) || $record
-                              ->hasFriendRequestFrom(auth()->user()))
-                      )
-                      ->action(fn(User $record) => auth()->user()->befriend($record)),
+                    ->label('Send Friend Request')
+                    ->icon(Heroicon::OutlinedUserPlus)
+                    ->visible(static fn (User $record) => ! (auth()
+                        ->user()
+                        ->isFriendWith($record) || $record
+                        ->hasFriendRequestFrom(auth()->user()))
+                    )
+                    ->action(fn (User $record) => auth()->user()->befriend($record)),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),
                 ]),
-            ])->modifyQueryUsing(static fn($query) => $query->whereNot('id', auth()->id()));
+            ])->modifyQueryUsing(static fn ($query) => $query->whereNot('id', auth()->id()));
     }
 
-    public static function getPages(): array {
+    public static function getPages(): array
+    {
         return [
             'index' => ManageUsers::route('/'),
-            'solictudes' => FriendRequests::route('/solicitudes-de-amistad')
+            'solictudes' => FriendRequests::route('/solicitudes-de-amistad'),
         ];
     }
 }

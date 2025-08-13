@@ -3,9 +3,9 @@
 namespace App\Models;
 
 use App\Enums\InvitationStatus;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Builder;
 
 class EventInvitation extends Model
 {
@@ -62,22 +62,22 @@ class EventInvitation extends Model
     }
 
     // Helper Methods
-    public function accept(string $message = null): bool
+    public function accept(?string $message = null): bool
     {
         return $this->updateStatus(InvitationStatus::ACCEPTED, $message);
     }
 
-    public function decline(string $message = null): bool
+    public function decline(?string $message = null): bool
     {
         return $this->updateStatus(InvitationStatus::DECLINED, $message);
     }
 
-    protected function updateStatus(InvitationStatus $status, string $message = null): bool
+    protected function updateStatus(InvitationStatus $status, ?string $message = null): bool
     {
         $this->status = $status;
         $this->response_message = $message;
         $this->responded_at = now();
-        
+
         return $this->save();
     }
 
