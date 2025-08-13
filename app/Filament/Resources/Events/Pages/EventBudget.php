@@ -8,12 +8,14 @@ use App\Models\BudgetPayment;
 use App\Models\Event;
 use Filament\Actions\Action;
 use Filament\Forms\Components\DateTimePicker;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\Concerns\InteractsWithRecord;
 use Filament\Resources\Pages\Page;
+use Illuminate\Support\Facades\Storage;
 
 class EventBudget extends Page
 {
@@ -50,7 +52,7 @@ class EventBudget extends Page
         $this->userSplits = $this->event->expenses()
             ->with(['splits' => function ($query) {
                 $query->where('user_id', auth()->id());
-            }, 'creator'])
+            }, 'creator', 'images'])
             ->get()
             ->toArray();
     }
@@ -87,6 +89,18 @@ class EventBudget extends Page
                         ])
                         ->default('general')
                         ->required(),
+
+                    FileUpload::make('photos')
+                        ->label('Attach Photos (Invoice, Receipt, etc.)')
+                        ->image()
+                        ->multiple()
+                        ->maxFiles(5)
+                        ->directory('budget-images')
+                        ->imagePreviewHeight(150)
+                        ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/gif', 'image/webp'])
+                        ->maxSize(5120) // 5MB
+                        ->helperText('Upload up to 5 photos (JPEG, PNG, GIF, WebP) - Max 5MB each')
+                        ->columnSpanFull(),
                 ])
                 ->action(function (array $data): void {
                     $budgetItem = BudgetItem::create([
@@ -102,8 +116,23 @@ class EventBudget extends Page
 
                     $budgetItem->createSplits();
 
+                    // Handle photo uploads
+                    if (! empty($data['photos'])) {
+                        foreach ($data['photos'] as $photo) {
+                            $budgetItem->images()->create([
+                                'filename' => basename($photo),
+                                'original_name' => basename($photo),
+                                'mime_type' => Storage::mimeType($photo),
+                                'size' => Storage::size($photo),
+                                'path' => $photo,
+                                'uploaded_by' => auth()->id(),
+                            ]);
+                        }
+                    }
+
                     Notification::make()
                         ->title('Expense Added Successfully')
+                        ->body($data['photos'] ? 'With '.count($data['photos']).' photo(s) attached' : '')
                         ->success()
                         ->send();
 
@@ -144,9 +173,21 @@ class EventBudget extends Page
                         ->default(now())
                         ->required()
                         ->native(false),
+
+                    FileUpload::make('photos')
+                        ->label('Attach Photos (Receipt, Transfer Screenshot, etc.)')
+                        ->image()
+                        ->multiple()
+                        ->maxFiles(3)
+                        ->directory('budget-images')
+                        ->imagePreviewHeight(150)
+                        ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/gif', 'image/webp'])
+                        ->maxSize(5120) // 5MB
+                        ->helperText('Upload up to 3 photos as proof of payment - Max 5MB each')
+                        ->columnSpanFull(),
                 ])
                 ->action(function (array $data): void {
-                    BudgetPayment::create([
+                    $payment = BudgetPayment::create([
                         'budget_item_id' => $data['budget_item_id'],
                         'paid_by' => auth()->id(),
                         'amount' => $data['amount'],
@@ -154,8 +195,23 @@ class EventBudget extends Page
                         'paid_at' => $data['paid_at'],
                     ]);
 
+                    // Handle photo uploads
+                    if (! empty($data['photos'])) {
+                        foreach ($data['photos'] as $photo) {
+                            $payment->images()->create([
+                                'filename' => basename($photo),
+                                'original_name' => basename($photo),
+                                'mime_type' => Storage::mimeType($photo),
+                                'size' => Storage::size($photo),
+                                'path' => $photo,
+                                'uploaded_by' => auth()->id(),
+                            ]);
+                        }
+                    }
+
                     Notification::make()
                         ->title('Payment Recorded Successfully')
+                        ->body($data['photos'] ? 'With '.count($data['photos']).' photo(s) attached as proof' : '')
                         ->success()
                         ->send();
 

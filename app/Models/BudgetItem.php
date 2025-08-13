@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class BudgetItem extends Model
 {
@@ -44,6 +45,11 @@ class BudgetItem extends Model
     public function splits(): HasMany
     {
         return $this->hasMany(BudgetSplit::class);
+    }
+
+    public function images(): MorphMany
+    {
+        return $this->morphMany(BudgetImage::class, 'imageable');
     }
 
     // Calculate and create splits for attendees

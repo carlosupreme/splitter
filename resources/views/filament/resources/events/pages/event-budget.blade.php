@@ -179,6 +179,29 @@
                                         @endforeach
                                     </div>
                                 @endif
+
+                                {{-- Show attached images for this expense --}}
+                                @if($expense->images && $expense->images->count() > 0)
+                                    <div class="mt-4 p-3 bg-gray-50 dark:bg-gray-800 rounded border">
+                                        <h6 class="font-medium text-gray-700 dark:text-gray-300 mb-2">📎 Attached Photos ({{ $expense->images->count() }})</h6>
+                                        <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+                                            @foreach($expense->images as $image)
+                                                <div class="relative group">
+                                                    <img src="{{ $image->url }}" 
+                                                         alt="{{ $image->original_name }}"
+                                                         class="w-full h-20 object-cover rounded cursor-pointer hover:opacity-80 transition-opacity"
+                                                         onclick="window.open('{{ $image->url }}', '_blank')">
+                                                    <div class="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs p-1 rounded-b opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        {{ $image->formatted_size }}
+                                                    </div>
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                        <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                            Click images to view full size
+                                        </div>
+                                    </div>
+                                @endif
                             </div>
                         @endif
                     </div>
@@ -194,7 +217,7 @@
         @php
             $allPayments = $event->budgetItems()
                 ->where('type', 'expense')
-                ->with(['payments.payer', 'creator'])
+                ->with(['payments.payer', 'payments.images', 'creator'])
                 ->get()
                 ->flatMap(function ($expense) {
                     return $expense->payments->map(function ($payment) use ($expense) {
@@ -253,6 +276,25 @@
                                             </span>
                                         @endif
                                     </div>
+
+                                    {{-- Show attached payment proof images --}}
+                                    @if($payment->images && $payment->images->count() > 0)
+                                        <div class="mt-3 p-2 bg-green-50 dark:bg-green-900/20 rounded border">
+                                            <div class="text-xs font-medium text-green-700 dark:text-green-300 mb-1">
+                                                🧾 Payment Proof ({{ $payment->images->count() }} photo{{ $payment->images->count() > 1 ? 's' : '' }})
+                                            </div>
+                                            <div class="grid grid-cols-3 gap-1">
+                                                @foreach($payment->images as $image)
+                                                    <div class="relative group">
+                                                        <img src="{{ $image->url }}" 
+                                                             alt="Payment proof"
+                                                             class="w-full h-12 object-cover rounded cursor-pointer hover:opacity-80 transition-opacity"
+                                                             onclick="window.open('{{ $image->url }}', '_blank')">
+                                                    </div>
+                                                @endforeach
+                                            </div>
+                                        </div>
+                                    @endif
                                 </div>
                             </div>
                         @endforeach

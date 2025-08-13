@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class BudgetPayment extends Model
 {
@@ -28,6 +29,11 @@ class BudgetPayment extends Model
     public function payer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'paid_by');
+    }
+
+    public function images(): MorphMany
+    {
+        return $this->morphMany(BudgetImage::class, 'imageable');
     }
 
     // Update the corresponding split when a payment is made
