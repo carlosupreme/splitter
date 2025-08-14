@@ -120,6 +120,28 @@ class User extends Authenticatable implements FilamentUser
         });
     }
 
+    // SharedExpense Relationships
+    public function sharedExpensesCreated(): HasMany
+    {
+        return $this->hasMany(SharedExpense::class, 'created_by');
+    }
+
+    public function sharedExpenseParticipations(): HasMany
+    {
+        return $this->hasMany(SharedExpenseParticipant::class, 'user_id');
+    }
+
+    // FriendBalance Relationships
+    public function friendBalances(): HasMany
+    {
+        return $this->hasMany(FriendBalance::class, 'user_id');
+    }
+
+    public function getFriendBalance(int $friendId): ?FriendBalance
+    {
+        return $this->friendBalances()->where('friend_id', $friendId)->first();
+    }
+
     public function canAccessPanel(Panel $panel): bool
     {
         return true;

@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Users\Pages;
 
 use App\Filament\Resources\Users\UserResource;
+use App\Models\FriendBalance;
 use App\Models\User;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\Page;
@@ -68,6 +69,10 @@ class FriendRequests extends Page
             $result = auth()->user()->acceptFriendRequest($sender);
 
             if ($result) {
+                // Create friend balance records for both users (starts at zero)
+                FriendBalance::getOrCreateBalance(auth()->id(), $sender->id);
+                FriendBalance::getOrCreateBalance($sender->id, auth()->id());
+
                 Notification::make()
                     ->title('Friend request accepted')
                     ->body("You are now friends with {$sender->name}")
