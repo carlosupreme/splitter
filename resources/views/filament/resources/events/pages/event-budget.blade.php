@@ -230,7 +230,7 @@
                                 $attendeeCount = $expense->splits->count();
                             @endphp
 
-                            <div class="border-l-4 border-red-400 bg-red-50 dark:bg-red-900/10 border border-gray-200 dark:border-gray-700 rounded-lg p-3 lg:p-4">
+                            <div class="border-l-4 border-red-400 bg-red-50 dark:bg-red-900/10 border  dark:border-gray-700 rounded-lg p-3 lg:p-4">
                                 <div class="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-3">
                                     <div class="flex-1">
                                         <div class="flex flex-col lg:flex-row lg:items-center gap-2">
@@ -254,7 +254,7 @@
                                             <div class="text-lg lg:text-xl font-bold text-gray-900 dark:text-white">${{ number_format($expense->amount, 2) }}</div>
                                             <div class="text-sm text-gray-500 dark:text-gray-500">Total</div>
                                         </div>
-                                        
+
                                         <div class="text-right">
                                             <div class="text-lg font-bold text-red-600 dark:text-red-400">${{ number_format($remaining, 2) }}</div>
                                             <div class="text-xs text-red-600 dark:text-red-400">Falta por pagar</div>

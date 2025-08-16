@@ -223,7 +223,29 @@ class EventBudget extends Page
                                 }
                             }
                         })
-                        ->helperText('El monto no puede exceder el monto restante del gasto')
+                        ->suffixAction(
+                            Action::make('fill_remaining')
+                                ->icon('heroicon-m-calculator')
+                                ->tooltip('Llenar monto restante')
+                                ->action(function ($set, $get) {
+                                    $budgetItemId = $get('budget_item_id');
+                                    if ($budgetItemId && $budgetItemId !== 'no_expenses') {
+                                        $expense = $this->event->expenses()->with('payments')
+                                            ->find($budgetItemId);
+                                        if ($expense) {
+                                            $totalPaid = $expense->payments->sum('amount');
+                                            $remaining = $expense->amount - $totalPaid;
+                                            $set('amount', number_format($remaining, 2, '.', ''));
+                                        }
+                                    }
+                                })
+                                ->disabled(function ($get) {
+                                    $budgetItemId = $get('budget_item_id');
+
+                                    return ! $budgetItemId || $budgetItemId === 'no_expenses';
+                                })
+                        )
+                        ->helperText('El monto no puede exceder el monto restante del gasto. Usa 🧮 para llenar automáticamente.')
                         ->rules([
                             function ($get) {
                                 return function (string $attribute, $value, \Closure $fail) use ($get) {
@@ -237,7 +259,8 @@ class EventBudget extends Page
                                     }
 
                                     if ($budgetItemId && $value) {
-                                        $expense = $this->event->expenses()->with('payments')->find($budgetItemId);
+                                        $expense = $this->event->expenses()->with('payments')
+                                            ->find($budgetItemId);
                                         if ($expense) {
                                             $totalPaid = $expense->payments->sum('amount');
                                             $remaining = $expense->amount - $totalPaid;
