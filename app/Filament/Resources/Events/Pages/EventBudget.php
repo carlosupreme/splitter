@@ -61,37 +61,44 @@ class EventBudget extends Page
     {
         return [
             Action::make('add_expense')
-                ->label('Add Expense')
+                ->label('Agregar Gasto')
                 ->icon('heroicon-o-minus-circle')
                 ->color('danger')
                 ->schema([
                     TextInput::make('title')
+                        ->label('Título del Gasto')
                         ->required()
-                        ->maxLength(255),
+                        ->maxLength(255)
+                        ->placeholder('Ej: Cena del viernes'),
 
                     Textarea::make('description')
-                        ->maxLength(1000),
+                        ->label('Descripción')
+                        ->maxLength(1000)
+                        ->placeholder('Detalles adicionales sobre el gasto (opcional)'),
 
                     TextInput::make('amount')
+                        ->label('Monto')
                         ->required()
                         ->numeric()
                         ->prefix('$')
-                        ->minValue(0.01),
+                        ->minValue(0.01)
+                        ->placeholder('0.00'),
 
                     Select::make('category')
+                        ->label('Categoría')
                         ->options([
                             'general' => 'General',
-                            'accommodation' => 'Accommodation',
-                            'transportation' => 'Transportation',
-                            'food' => 'Food & Drinks',
-                            'entertainment' => 'Entertainment',
-                            'shopping' => 'Shopping',
+                            'accommodation' => 'Alojamiento',
+                            'transportation' => 'Transporte',
+                            'food' => 'Comida y Bebidas',
+                            'entertainment' => 'Entretenimiento',
+                            'shopping' => 'Compras',
                         ])
                         ->default('general')
                         ->required(),
 
                     FileUpload::make('photos')
-                        ->label('Attach Photos (Invoice, Receipt, etc.)')
+                        ->label('Adjuntar Fotos (Factura, Recibo, etc.)')
                         ->image()
                         ->multiple()
                         ->maxFiles(5)
@@ -99,7 +106,7 @@ class EventBudget extends Page
                         ->imagePreviewHeight(150)
                         ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/gif', 'image/webp'])
                         ->maxSize(5120) // 5MB
-                        ->helperText('Upload up to 5 photos (JPEG, PNG, GIF, WebP) - Max 5MB each')
+                        ->helperText('Sube hasta 5 fotos (JPEG, PNG, GIF, WebP) - Máximo 5MB cada una')
                         ->columnSpanFull(),
                 ])
                 ->action(function (array $data): void {
@@ -131,8 +138,8 @@ class EventBudget extends Page
                     }
 
                     Notification::make()
-                        ->title('Expense Added Successfully')
-                        ->body($data['photos'] ? 'With '.count($data['photos']).' photo(s) attached' : '')
+                        ->title('Gasto Agregado Exitosamente')
+                        ->body($data['photos'] ? 'Con '.count($data['photos']).' foto(s) adjunta(s)' : '')
                         ->success()
                         ->send();
 
@@ -140,42 +147,45 @@ class EventBudget extends Page
                 }),
 
             Action::make('add_payment')
-                ->label('Record Payment')
+                ->label('Registrar Pago')
                 ->icon('heroicon-o-currency-dollar')
                 ->color('warning')
                 ->schema([
                     Select::make('budget_item_id')
-                        ->label('Expense Item')
+                        ->label('Gasto')
                         ->options(
                             $this->event->expenses()
                                 ->with('creator')
                                 ->get()
                                 ->mapWithKeys(fn ($expense) => [
-                                    $expense->id => "{$expense->title} - \${$expense->amount} (by {$expense->creator->name})",
+                                    $expense->id => "{$expense->title} - \${$expense->amount} (por {$expense->creator->name})",
                                 ])
                         )
                         ->required()
-                        ->searchable(),
+                        ->searchable()
+                        ->placeholder('Selecciona el gasto al que se aplica este pago'),
 
                     TextInput::make('amount')
+                        ->label('Monto del Pago')
                         ->required()
                         ->numeric()
                         ->prefix('$')
-                        ->minValue(0.01),
+                        ->minValue(0.01)
+                        ->placeholder('0.00'),
 
                     Textarea::make('note')
-                        ->label('Payment Note')
+                        ->label('Nota del Pago')
                         ->maxLength(500)
-                        ->placeholder('Optional note about this payment'),
+                        ->placeholder('Nota opcional sobre este pago'),
 
                     DateTimePicker::make('paid_at')
-                        ->label('Payment Date')
+                        ->label('Fecha del Pago')
                         ->default(now())
                         ->required()
                         ->native(false),
 
                     FileUpload::make('photos')
-                        ->label('Attach Photos (Receipt, Transfer Screenshot, etc.)')
+                        ->label('Adjuntar Fotos (Recibo, Captura de Transferencia, etc.)')
                         ->image()
                         ->multiple()
                         ->maxFiles(3)
@@ -183,7 +193,7 @@ class EventBudget extends Page
                         ->imagePreviewHeight(150)
                         ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/gif', 'image/webp'])
                         ->maxSize(5120) // 5MB
-                        ->helperText('Upload up to 3 photos as proof of payment - Max 5MB each')
+                        ->helperText('Sube hasta 3 fotos como comprobante de pago - Máximo 5MB cada una')
                         ->columnSpanFull(),
                 ])
                 ->action(function (array $data): void {
@@ -210,8 +220,8 @@ class EventBudget extends Page
                     }
 
                     Notification::make()
-                        ->title('Payment Recorded Successfully')
-                        ->body($data['photos'] ? 'With '.count($data['photos']).' photo(s) attached as proof' : '')
+                        ->title('Pago Registrado Exitosamente')
+                        ->body($data['photos'] ? 'Con '.count($data['photos']).' foto(s) adjunta(s) como comprobante' : '')
                         ->success()
                         ->send();
 
@@ -222,6 +232,6 @@ class EventBudget extends Page
 
     public function getTitle(): string
     {
-        return "Budget - {$this->event->title}";
+        return "Presupuesto - {$this->event->title}";
     }
 }
