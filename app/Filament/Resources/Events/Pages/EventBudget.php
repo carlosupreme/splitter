@@ -16,6 +16,7 @@ use Filament\Notifications\Notification;
 use Filament\Resources\Pages\Concerns\InteractsWithRecord;
 use Filament\Resources\Pages\Page;
 use Illuminate\Support\Facades\Storage;
+use Livewire\Attributes\On;
 
 class EventBudget extends Page
 {
@@ -94,6 +95,7 @@ class EventBudget extends Page
                             'food' => 'Comida y Bebidas',
                             'entertainment' => 'Entretenimiento',
                             'shopping' => 'Compras',
+                            'transfer' => 'Transferencia',
                         ])
                         ->default('general')
                         ->required(),
@@ -340,6 +342,14 @@ class EventBudget extends Page
                     $this->loadBudgetData();
                 }),
         ];
+    }
+
+    #[On('transfer-recorded')]
+    #[On('transfer-requested')]
+    #[On('transfer-confirmed')]
+    public function refreshBudgetData()
+    {
+        $this->loadBudgetData();
     }
 
     public function getTitle(): string

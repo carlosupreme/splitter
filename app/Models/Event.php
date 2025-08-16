@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Models\PendingTransfer;
 
 class Event extends Model
 {
@@ -136,6 +137,11 @@ class Event extends Model
     public function incomes(): HasMany
     {
         return $this->budgetItems()->where('type', 'income');
+    }
+
+    public function pendingTransfers(): HasMany
+    {
+        return $this->hasMany(PendingTransfer::class);
     }
 
     // Check if user can access the budget (organizer or accepted attendee)

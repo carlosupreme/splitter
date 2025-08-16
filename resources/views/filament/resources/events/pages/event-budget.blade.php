@@ -198,6 +198,9 @@
             </div>
         </div>
 
+        {{-- Payment Plan Suggestion Component --}}
+        @livewire('payment-plan-suggestion', ['event' => $event])
+
         @php
             // Get all attendees for filter dropdown
             $allAttendees = collect([$event->organizer])->merge($event->acceptedInvitees)->sortBy('name');
