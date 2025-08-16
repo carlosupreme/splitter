@@ -130,7 +130,7 @@ class Event extends Model
 
     public function expenses(): HasMany
     {
-        return $this->budgetItems()->where('type', 'expense');
+        return $this->budgetItems()->where('type', 'expense')->orderBy('created_at', 'desc');
     }
 
     public function incomes(): HasMany

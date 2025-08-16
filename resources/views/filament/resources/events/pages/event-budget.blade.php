@@ -209,6 +209,7 @@
                 ->with(['creator', 'payments', 'splits' => function ($query) {
                     $query->where('user_id', auth()->id());
                 }])
+                ->orderBy('created_at', 'desc')
                 ->get()
                 ->filter(function ($expense) {
                     $totalPaid = $expense->payments->sum('amount');

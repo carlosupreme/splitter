@@ -48,11 +48,12 @@ class EventBudget extends Page
     {
         $this->budgetSummary = $this->event->getBudgetSummaryForUser(auth()->id());
 
-        // Load user splits for all expenses
+        // Load user splits for all expenses (latest first)
         $this->userSplits = $this->event->expenses()
             ->with(['splits' => function ($query) {
                 $query->where('user_id', auth()->id());
             }, 'creator', 'images'])
+            ->orderBy('created_at', 'desc')
             ->get()
             ->toArray();
     }
