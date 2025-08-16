@@ -199,6 +199,12 @@
         </div>
 
         @php
+            // Get all attendees for filter dropdown
+            $allAttendees = collect([$event->organizer])->merge($event->acceptedInvitees)->sortBy('name');
+            
+            // Get all categories used in this event
+            $allCategories = $event->expenses->pluck('category')->unique()->filter()->sort();
+            
             $pendingExpenses = $event->expenses()
                 ->with(['creator', 'payments', 'splits' => function ($query) {
                     $query->where('user_id', auth()->id());
@@ -223,6 +229,70 @@
         @endphp
 
         <div class="bg-white dark:bg-gray-900 overflow-hidden shadow-sm rounded-lg border border-gray-200 dark:border-gray-700">
+            {{-- Advanced Filters Section --}}
+            <div class="border-b border-gray-200 dark:border-gray-700 p-4 bg-gray-50 dark:bg-gray-800">
+                <div class="flex flex-col lg:flex-row lg:items-center gap-4">
+                    <div class="flex items-center gap-2">
+                        <span class="text-sm font-medium text-gray-700 dark:text-gray-300">🔍 Filtros:</span>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 flex-1">
+                        {{-- Attendee Filter --}}
+                        <div>
+                            <select id="filter-attendee" class="w-full text-sm px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-red-500 focus:border-red-500" onchange="applyFilters()">
+                                <option value="">👥 Todos los Asistentes</option>
+                                @foreach($allAttendees as $attendee)
+                                    <option value="{{ $attendee->id }}">{{ $attendee->name }}{{ $attendee->id === auth()->id() ? ' (Tú)' : '' }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        {{-- Category Filter --}}
+                        <div>
+                            <select id="filter-category" class="w-full text-sm px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-red-500 focus:border-red-500" onchange="applyFilters()">
+                                <option value="">🏷️ Todas las Categorías</option>
+                                @foreach($allCategories as $category)
+                                    <option value="{{ $category }}">{{ ucfirst($category) }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        {{-- Amount Range Filter --}}
+                        <div>
+                            <select id="filter-amount" class="w-full text-sm px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-red-500 focus:border-red-500" onchange="applyFilters()">
+                                <option value="">💰 Todos los Montos</option>
+                                <option value="0-50">$0 - $50</option>
+                                <option value="50-100">$50 - $100</option>
+                                <option value="100-200">$100 - $200</option>
+                                <option value="200-500">$200 - $500</option>
+                                <option value="500+">$500+</option>
+                            </select>
+                        </div>
+
+                        {{-- Date Range Filter --}}
+                        <div>
+                            <select id="filter-date" class="w-full text-sm px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-red-500 focus:border-red-500" onchange="applyFilters()">
+                                <option value="">📅 Todas las Fechas</option>
+                                <option value="today">Hoy</option>
+                                <option value="week">Esta Semana</option>
+                                <option value="month">Este Mes</option>
+                                <option value="older">Más Antiguos</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    {{-- Clear Filters Button --}}
+                    <div class="flex items-center gap-2">
+                        <button onclick="clearAllFilters()" class="px-3 py-2 text-sm bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 text-gray-700 dark:text-gray-300 rounded-lg transition-colors">
+                            🗑️ Limpiar
+                        </button>
+                        <span id="filter-count" class="text-xs text-gray-500 dark:text-gray-400 hidden">
+                            <!-- Filter count will be shown here -->
+                        </span>
+                    </div>
+                </div>
+            </div>
+
             {{-- Mobile Tab Selector - Only visible on mobile --}}
             <div class="lg:hidden border-b border-gray-200 dark:border-gray-700 p-4">
                 <select id="mobile-tab-selector" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-red-500 focus:border-red-500" onchange="showTabFromSelect(this.value)">
@@ -274,7 +344,11 @@
                                     $attendeeCount = $expense->splits->count();
                                 @endphp
 
-                                <div class="border-l-4 border-red-400 bg-red-50 dark:bg-red-900/10 border border-gray-200 dark:border-gray-700 rounded-lg p-3 lg:p-4">
+                                <div class="filterable-expense border-l-4 border-red-400 bg-red-50 dark:bg-red-900/10 border border-gray-200 dark:border-gray-700 rounded-lg p-3 lg:p-4" 
+                                     data-creator-id="{{ $expense->creator->id }}" 
+                                     data-category="{{ $expense->category }}" 
+                                     data-amount="{{ $expense->amount }}" 
+                                     data-created-date="{{ $expense->created_at->format('Y-m-d') }}">
                                     <div class="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-3">
                                         <div class="flex-1">
                                             <div class="flex flex-col lg:flex-row lg:items-center gap-2">
@@ -396,7 +470,11 @@
                             $attendeeCount = $expense->splits->count();
                         @endphp
 
-                        <div class="border border-gray-200 dark:border-gray-700 rounded-lg mb-4 p-3 lg:p-4">
+                        <div class="filterable-expense border border-gray-200 dark:border-gray-700 rounded-lg mb-4 p-3 lg:p-4" 
+                             data-creator-id="{{ $expense->creator->id }}" 
+                             data-category="{{ $expense->category }}" 
+                             data-amount="{{ $expense->amount }}" 
+                             data-created-date="{{ $expense->created_at->format('Y-m-d') }}">
                             <div class="flex flex-col lg:flex-row lg:justify-between lg:items-start mb-3 gap-3">
                                 <div class="flex-1">
                                     <div class="flex flex-col lg:flex-row lg:items-center gap-2">
@@ -530,7 +608,13 @@
                     @if($allPayments->count() > 0)
                         <div class="space-y-4">
                             @foreach($allPayments as $payment)
-                                <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between p-3 lg:p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 shadow-sm hover:shadow-md transition-shadow">
+                                <div class="filterable-payment flex flex-col lg:flex-row lg:items-start lg:justify-between p-3 lg:p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 shadow-sm hover:shadow-md transition-shadow" 
+                                     data-payer-id="{{ $payment->payer->id }}" 
+                                     data-creator-id="{{ $payment->expense->creator->id }}" 
+                                     data-category="{{ $payment->expense->category }}" 
+                                     data-amount="{{ $payment->amount }}" 
+                                     data-expense-amount="{{ $payment->expense->amount }}" 
+                                     data-paid-date="{{ $payment->paid_at->format('Y-m-d') }}">
 
                                     {{-- Left section --}}
                                     <div class="flex-1">
@@ -600,7 +684,7 @@
             </div>
         </div>
 
-        {{-- JavaScript for tab functionality --}}
+        {{-- JavaScript for tab functionality and filtering --}}
         <script>
             function showTab(tabName) {
                 // Hide all tab content
@@ -629,11 +713,152 @@
                 if (mobileSelector) {
                     mobileSelector.value = tabName;
                 }
+
+                // Re-apply filters after tab change
+                applyFilters();
             }
 
             // Function for mobile dropdown
             function showTabFromSelect(tabName) {
                 showTab(tabName);
+            }
+
+            // Advanced filtering system
+            function applyFilters() {
+                const attendeeFilter = document.getElementById('filter-attendee').value;
+                const categoryFilter = document.getElementById('filter-category').value;
+                const amountFilter = document.getElementById('filter-amount').value;
+                const dateFilter = document.getElementById('filter-date').value;
+
+                let visibleExpenses = 0;
+                let visiblePayments = 0;
+                let activeFilters = 0;
+
+                // Count active filters
+                if (attendeeFilter) activeFilters++;
+                if (categoryFilter) activeFilters++;
+                if (amountFilter) activeFilters++;
+                if (dateFilter) activeFilters++;
+
+                // Get current date for date filtering
+                const today = new Date();
+                const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+                const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+                // Filter expenses (by creator only)
+                document.querySelectorAll('.filterable-expense').forEach(expense => {
+                    let show = true;
+
+                    // Attendee filter (expense creator only)
+                    if (attendeeFilter && expense.dataset.creatorId !== attendeeFilter) {
+                        show = false;
+                    }
+
+                    // Category filter
+                    if (categoryFilter && expense.dataset.category !== categoryFilter) {
+                        show = false;
+                    }
+
+                    // Amount filter
+                    if (amountFilter && !matchesAmountRange(parseFloat(expense.dataset.amount), amountFilter)) {
+                        show = false;
+                    }
+
+                    // Date filter
+                    if (dateFilter && !matchesDateRange(expense.dataset.createdDate, dateFilter, today, weekAgo, monthAgo)) {
+                        show = false;
+                    }
+
+                    if (show) {
+                        expense.style.display = 'block';
+                        visibleExpenses++;
+                    } else {
+                        expense.style.display = 'none';
+                    }
+                });
+
+                // Filter payments (by payer only)
+                document.querySelectorAll('.filterable-payment').forEach(payment => {
+                    let show = true;
+
+                    // Attendee filter (payment payer only)
+                    if (attendeeFilter && payment.dataset.payerId !== attendeeFilter) {
+                        show = false;
+                    }
+
+                    // Category filter
+                    if (categoryFilter && payment.dataset.category !== categoryFilter) {
+                        show = false;
+                    }
+
+                    // Amount filter (use payment amount for payments)
+                    if (amountFilter && !matchesAmountRange(parseFloat(payment.dataset.amount), amountFilter)) {
+                        show = false;
+                    }
+
+                    // Date filter (use paid date for payments)
+                    if (dateFilter && !matchesDateRange(payment.dataset.paidDate, dateFilter, today, weekAgo, monthAgo)) {
+                        show = false;
+                    }
+
+                    if (show) {
+                        payment.style.display = 'flex';
+                        visiblePayments++;
+                    } else {
+                        payment.style.display = 'none';
+                    }
+                });
+
+                // Update filter count display
+                updateFilterCount(activeFilters, visibleExpenses, visiblePayments);
+            }
+
+            function matchesAmountRange(amount, range) {
+                switch(range) {
+                    case '0-50': return amount >= 0 && amount <= 50;
+                    case '50-100': return amount > 50 && amount <= 100;
+                    case '100-200': return amount > 100 && amount <= 200;
+                    case '200-500': return amount > 200 && amount <= 500;
+                    case '500+': return amount > 500;
+                    default: return true;
+                }
+            }
+
+            function matchesDateRange(dateString, range, today, weekAgo, monthAgo) {
+                const itemDate = new Date(dateString);
+                const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+                
+                switch(range) {
+                    case 'today': 
+                        return itemDate.toDateString() === todayDate.toDateString();
+                    case 'week': 
+                        return itemDate >= weekAgo;
+                    case 'month': 
+                        return itemDate >= monthAgo;
+                    case 'older': 
+                        return itemDate < monthAgo;
+                    default: 
+                        return true;
+                }
+            }
+
+            function updateFilterCount(activeFilters, visibleExpenses, visiblePayments) {
+                const filterCountElement = document.getElementById('filter-count');
+                
+                if (activeFilters > 0) {
+                    filterCountElement.textContent = `${activeFilters} filtro${activeFilters !== 1 ? 's' : ''} activo${activeFilters !== 1 ? 's' : ''} | ${visibleExpenses} gastos, ${visiblePayments} pagos`;
+                    filterCountElement.classList.remove('hidden');
+                } else {
+                    filterCountElement.classList.add('hidden');
+                }
+            }
+
+            function clearAllFilters() {
+                document.getElementById('filter-attendee').value = '';
+                document.getElementById('filter-category').value = '';
+                document.getElementById('filter-amount').value = '';
+                document.getElementById('filter-date').value = '';
+                applyFilters();
             }
 
             // Set default tab on page load

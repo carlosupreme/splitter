@@ -171,24 +171,24 @@ class Event extends Model
     {
         $totalOwed = 0;
         $totalPaid = 0;
-        $creditsToReceive = 0;
 
         foreach ($this->expenses as $expense) {
             $split = $expense->splits()->where('user_id', $userId)->first();
             if ($split) {
                 $totalOwed += $split->share_amount;
                 $totalPaid += $split->paid_amount;
-
-                if ($split->isOverpaid()) {
-                    $creditsToReceive += $split->getOverpaidAmount();
-                }
             }
         }
+
+        // Calculate net balance - if positive, user should receive credit
+        $netBalance = $totalPaid - $totalOwed;
+        $creditsToReceive = max(0, $netBalance);
+        $remainingToPay = max(0, -$netBalance);
 
         return [
             'total_owed' => $totalOwed,
             'total_paid' => $totalPaid,
-            'remaining_to_pay' => max(0, $totalOwed - $totalPaid),
+            'remaining_to_pay' => $remainingToPay,
             'credits_to_receive' => $creditsToReceive,
             'status' => $totalPaid >= $totalOwed ? 'completed' : ($totalPaid > 0 ? 'partial' : 'pending'),
         ];
