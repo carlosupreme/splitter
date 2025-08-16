@@ -153,17 +153,54 @@ class EventBudget extends Page
                 ->schema([
                     Select::make('budget_item_id')
                         ->label('Gasto')
-                        ->options(
-                            $this->event->expenses()
-                                ->with('creator')
+                        ->options(function () {
+                            $unpaidExpenses = $this->event->expenses()
+                                ->with(['creator', 'payments'])
                                 ->get()
-                                ->mapWithKeys(fn ($expense) => [
-                                    $expense->id => "{$expense->title} - \${$expense->amount} (por {$expense->creator->name})",
-                                ])
-                        )
+                                ->filter(function ($expense) {
+                                    // Calculate total payments for this expense
+                                    $totalPaid = $expense->payments->sum('amount');
+
+                                    // Check if expense is not fully paid
+                                    return $totalPaid < $expense->amount;
+                                });
+
+                            if ($unpaidExpenses->isEmpty()) {
+                                return ['no_expenses' => '¡Todos los gastos están completamente pagados!'];
+                            }
+
+                            return $unpaidExpenses->mapWithKeys(fn ($expense) => [
+                                $expense->id => "{$expense->title} - \${$expense->amount} (por {$expense->creator->name}) - Restante: \$".number_format($expense->amount - $expense->payments->sum('amount'), 2),
+                            ]);
+                        })
                         ->required()
                         ->searchable()
-                        ->placeholder('Selecciona el gasto al que se aplica este pago'),
+                        ->placeholder('Selecciona el gasto al que se aplica este pago')
+                        ->helperText('Solo se muestran gastos que no están totalmente pagados')
+                        ->live()
+                        ->afterStateUpdated(function ($state, $set) {
+                            if ($state && $state !== 'no_expenses') {
+                                $expense = $this->event->expenses()->with('payments')->find($state);
+                                if ($expense) {
+                                    $totalPaid = $expense->payments->sum('amount');
+                                    $remaining = $expense->amount - $totalPaid;
+                                    // Set suggested amount to remaining amount
+                                    $set('amount', number_format($remaining, 2, '.', ''));
+                                }
+                            } else {
+                                // Clear amount if no valid expense is selected
+                                $set('amount', '');
+                            }
+                        })
+                        ->rules([
+                            function () {
+                                return function (string $attribute, $value, \Closure $fail) {
+                                    if ($value === 'no_expenses') {
+                                        $fail('No hay gastos disponibles para registrar pagos.');
+                                    }
+                                };
+                            },
+                        ]),
 
                     TextInput::make('amount')
                         ->label('Monto del Pago')
@@ -171,7 +208,47 @@ class EventBudget extends Page
                         ->numeric()
                         ->prefix('$')
                         ->minValue(0.01)
-                        ->placeholder('0.00'),
+                        ->placeholder('0.00')
+                        ->live()
+                        ->afterStateUpdated(function ($state, $set, $get) {
+                            $budgetItemId = $get('budget_item_id');
+                            if ($budgetItemId && $state) {
+                                $expense = $this->event->expenses()->with('payments')->find($budgetItemId);
+                                if ($expense) {
+                                    $totalPaid = $expense->payments->sum('amount');
+                                    $remaining = $expense->amount - $totalPaid;
+                                    if ($state > $remaining) {
+                                        $set('amount', $remaining);
+                                    }
+                                }
+                            }
+                        })
+                        ->helperText('El monto no puede exceder el monto restante del gasto')
+                        ->rules([
+                            function ($get) {
+                                return function (string $attribute, $value, \Closure $fail) use ($get) {
+                                    $budgetItemId = $get('budget_item_id');
+
+                                    // Check if no_expenses was selected
+                                    if ($budgetItemId === 'no_expenses') {
+                                        $fail('No hay gastos disponibles para pagar.');
+
+                                        return;
+                                    }
+
+                                    if ($budgetItemId && $value) {
+                                        $expense = $this->event->expenses()->with('payments')->find($budgetItemId);
+                                        if ($expense) {
+                                            $totalPaid = $expense->payments->sum('amount');
+                                            $remaining = $expense->amount - $totalPaid;
+                                            if ($value > $remaining) {
+                                                $fail('El monto no puede exceder el monto restante de $'.number_format($remaining, 2));
+                                            }
+                                        }
+                                    }
+                                };
+                            },
+                        ]),
 
                     Textarea::make('note')
                         ->label('Nota del Pago')
@@ -197,6 +274,17 @@ class EventBudget extends Page
                         ->columnSpanFull(),
                 ])
                 ->action(function (array $data): void {
+                    // Prevent payment creation if no valid expense is selected
+                    if ($data['budget_item_id'] === 'no_expenses') {
+                        Notification::make()
+                            ->title('Error')
+                            ->body('No hay gastos disponibles para registrar pagos.')
+                            ->danger()
+                            ->send();
+
+                        return;
+                    }
+
                     $payment = BudgetPayment::create([
                         'budget_item_id' => $data['budget_item_id'],
                         'paid_by' => auth()->id(),
