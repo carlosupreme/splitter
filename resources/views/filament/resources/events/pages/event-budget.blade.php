@@ -226,10 +226,7 @@
         </div>
 
         {{-- Payment Plan Suggestion Component --}}
-        @php $netBalance = $event->getTotalIncomes() - $event->getTotalExpenses(); @endphp
-        @if($netBalance >= 0)
-            @livewire('payment-plan-suggestion', ['event' => $event])
-        @endif
+        @livewire('payment-plan-suggestion', ['event' => $event])
 
         @php
             // Get all attendees for filter dropdown
